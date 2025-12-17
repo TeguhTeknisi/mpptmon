@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#007BFF">
+    <meta name="description" content="Dashboard MPPT Monitoring real-time for Techfine, Samoto and Amsan">
+    <meta name="author" content="Teguh Sakura (teguh.sakura@yahoo.com)">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="MPPT Monitoring">
+    <meta name="apple-mobile-web-app-title" content="MPPT Monitoring">
+    <meta name="msapplication-TileColor" content="#007BFF">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <title>MPPT Monitoring</title>
+    
+    <!-- Tambahkan library MQTT.js -->
+    <script src="./mqtt.min.js"></script>
+    <script src="./chart.js"></script>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="./icons/icon-167x167.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./icons/icon-192x192.png">
+    
+    <style>
+        /* ===== FIX SCROLLING ISSUES ===== */
+        
+        /* Reset untuk scrolling */
+        * {
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+            -webkit-touch-callout: none;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Penting: Hilangkan scroll horizontal */
+            -webkit-overflow-scrolling: touch !important;
+            overscroll-behavior-y: contain;
+            touch-action: pan-y;
+            position: relative;
+        }
+        
+        body {
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            min-height: 100vh;
+            background: #f8f9fa;
+            font-family: 'Segoe UI', sans-serif;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Fix untuk iOS Safari */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                overflow-y: scroll;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        .main-container-border {
+           border: 3px solid #007BFF;
+           border-radius: 20px;
+           padding: 15px;
+           background-color: white;
+           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+           margin: 10px auto; 
+           width: calc(100% - 20px);
+           max-width: 850px;
+           overflow: hidden; /* Pastikan tidak ada overflow */
+        }
+
+        .guardian-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .section-info {
+            text-align: center;
+            flex-grow: 1;
+            background-color: white;
+            border: 2px solid #007BFF;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            margin: 0;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .section-info h1 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        
+        .energy-tab-container {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .data-section {
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+        
+        .data-section.monthly-section {
+            border-color: #2ecc71;
+        }
+        
+        .data-section h2 {
+            margin-top: 0;
+            color: #2980b9;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+            font-size: 1.2em;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .data-section.monthly-section h2 {
+            color: #27ae60;
+            border-bottom-color: #2ecc71;
+        }
+        
+        .control {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin: 12px 0;
+            width: 100%;
+        }
+        
+        .control select, .control button {
+            padding: 10px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 44px;
+            max-width: 100%;
+        }
+        
+        .control select {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .control button {
+            flex: 1;
+            min-width: 140px;
+            font-weight: bold;
+        }
+        
+        .daily-button {
+            background-color: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        
+        .daily-button:active {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+        }
+        
+        .monthly-button {
+            background-color: #2ecc71;
+            color: white;
+            border-color: #27ae60;
+        }
+        
+        .monthly-button:active {
+            background-color: #27ae60;
+            transform: translateY(-1px);
+        }
+        
+        .status {
+            text-align: center;
+            min-height: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 14px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .connected { color: #27ae60; background: #e8f6ef; }
+        .disconnected { color: #e74c3c; background: #fdedec; }
+        .loading { color: #f39c12; background: #fef9e7; }
+        .notfound { color: #95a5a6; background: #f8f9fa; }
+        .success { color: #27ae60; background: #e8f6ef; }
+        .success-daily { color: #2980b9; background: #e8f4fc; border-left: 4px solid #3498db;}
+        .success-monthly { color: #27ae60; background: #e8f6ef; border-left: 4px solid #3ADB34;}
+
+        /* Animasi Panah Bergerak */
+        .arrow-flow-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 5px;
+            gap: 15px;
+        }
+
+        .arrow-flow-container.show-flow {
+            display: flex !important;
+        }
+
+        /* Style untuk setiap panah kecil */
+        .arrow-mini {
+            font-size: 1.2em;
+            color: #4CAF50;
+            line-height: 1;
+            opacity: 0;
+            animation: flowSequence 1.5s infinite;
+        }
+
+        /* Memberikan delay pada masing-masing panah agar terlihat mengalir */
+        .arrow-mini:nth-child(1) { animation-delay: 0.0s; }
+        .arrow-mini:nth-child(2) { animation-delay: 0.2s; }
+        .arrow-mini:nth-child(3) { animation-delay: 0.4s; }
+        .arrow-mini:nth-child(4) { animation-delay: 0.6s; }
+        .arrow-mini:nth-child(5) { animation-delay: 0.8s; }
+        .arrow-mini:nth-child(6) { animation-delay: 1.0s; }
+        .arrow-mini:nth-child(7) { animation-delay: 1.2s; }
+
+        @keyframes flowSequence {
+            0% { opacity: 0; transform: translateY(-10px); }
+            20% { opacity: 1; transform: translateY(0px); }
+            80% { opacity: 1; transform: translateY(0px); }
+            100% { opacity: 0; transform: translateY(10px); }
+        }
+
+        /* Tabel Style untuk Mobile */
+        .daily-table, .monthly-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+            table-layout: fixed;
+        }
+        
+        .daily-table th, .daily-table td,
+        .monthly-table th, .monthly-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .daily-table th {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .monthly-table th {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .daily-table tr:hover { background-color: #f0f7ff; }
+        .monthly-table tr:hover { background-color: #f0fff4; }
+        
+        /* Chart Container untuk Mobile - Horizontal */
+        .chart-container-mobile {
+            margin-top: 15px;
+            min-height: 250px;
+            width: 100%;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            position: relative;
+        }
+        
+        .chart-container-mobile canvas {
+            display: block;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 12px 0;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        
+        .view-toggle button {
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            flex: 1;
+            min-width: 140px;
+            min-height: 44px;
+            max-width: calc(50% - 10px);
+        }
+        
+        .view-toggle button.daily {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .view-toggle button.daily:active {
+            background-color: #2980b9;
+        }
+        
+        .view-toggle button.monthly {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .view-toggle button.monthly:active {
+            background-color: #27ae60;
+        }
+        
+        /* Layout untuk tabel dan chart side-by-side */
+        .table-chart-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        /* Hide class */
+        .hidden {
+            display: none !important;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            overflow: hidden !important;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: modalFadeIn 0.3s ease;
+            overflow: hidden !important;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal h2 {
+            color: #007BFF;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            padding: 0 10px;
+            word-wrap: break-word;
+        }
+
+        .modal p {
+            padding: 0 10px;
+            word-wrap: break-word;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin: 12px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .modal input:focus {
+            border-color: #007BFF;
+        }
+
+        .modal button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            overflow: hidden !important;
+        }
+
+        .confirmation-modal.active {
+            display: flex;
+        }
+
+        .confirmation-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            animation: modalFadeIn 0.3s ease;
+            overflow: hidden;
+        }
+
+        .confirmation-icon {
+            font-size: 48px;
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+
+        /* Status Container */
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        
+        .status-connected { background-color: #28a745; }
+        .status-connecting { background-color: #ffc107; animation: pulse 1.5s infinite; }
+        .status-disconnected { background-color: #dc3545; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .last-update {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Tab Navigation */
+        .tab-container-main {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 12px 20px;
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 14px;
+            min-width: 120px;
+            min-height: 44px;
+            flex: 1;
+            max-width: calc(50% - 10px);
+            text-align: center;
+        }
+        
+        .tab-button.active, .tab-button:active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        /* Info Section Styles */
+        .info-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .icon-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 10px;
+            flex-basis: 60px;
+            flex-shrink: 0;
+        }
+
+        .icon-placeholder {
+            font-size: 2.5em;
+            color: #777777;
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+        .icon-placeholder.solar-panel { color: #f9a825; }
+        .icon-placeholder.moon-icon { color: #a0aec0; }
+        .icon-placeholder.battery { color: #4caf50; }
+        .icon-placeholder.energi { color: #1976d2; }
+
+        .info-card {
+            flex-grow: 1;
+            background-color: white;
+            border: 2px solid #007BFF;
+            border-radius: 15px;
+            padding: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .card-title {
+            font-size: 1em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            font-size: 0.9em;
+            width: 100%;
+        }
+        .metric:not(:last-child) {
+            border-bottom: 1px dashed #e0e0e0;
+        }
+
+        .metric-label {
+            color: #555;
+            flex-shrink: 0;
+        }
+
+        .metric-value {
+            color: #000;
+            font-weight: bold;
+            text-align: right;
+            flex: 1;
+            margin-left: 10px;
+            word-break: break-word;
+        }
+
+        .unit {
+            font-size: 0.9em;
+            color: #555;
+            margin-left: 4px;
+        }
+
+        .cost-highlight {
+            color: #2ecc71 !important; /* Warna Hijau */
+            font-weight: bold;
+        }
+
+        /* Memastikan unit Rp juga berwarna hijau jika di dalam cost-highlight */
+        .cost-highlight .unit {
+            color: #2ecc71;
+        }
+
+        .no-sensor {
+            color: #dc3545;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        .charging {
+            color: #4CAF50;
+        }
+
+        .not-charging {
+            color: #f44336;
+        }
+
+        .battery-full-status {
+            color: #4CAF50;
+        }
+
+        .battery-not-full-status {
+            color: #ff9800;
+        }
+
+        .on {
+            color: #4CAF50; /* Warna Hijau */
+            font-weight: bold;
+        }
+
+        .off {
+            color: #f44336; /* Warna Merah */
+            font-weight: bold;
+        }
+
+        /* Client Info Container */
+        .client-info-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: white;
+            border: 2px solid #007BFF;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .client-name-display {
+            text-align: center;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            word-break: break-word;
+            width: 100%;
+        }
+
+        .client-name-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .client-name-value {
+            font-weight: bold;
+            color: #007BFF;
+            font-size: 1.2em;
+            display: block;
+            padding: 5px 0;
+            word-break: break-word;
+        }
+
+        .change-client-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 44px;
+            box-sizing: border-box;
+        }
+
+        /* Hide main content initially */
+        .main-content {
+            display: none;
+            width: 100%;
+        }
+
+        .main-content.active {
+            display: block;
+            width: 100%;
+        }
+
+        /* Button Group Modal */
+        .button-group-modal {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .button-group-modal button {
+            flex: 1;
+            padding: 12px;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d !important;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545 !important;
+        }
+
+        /* PWA Install Prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #007BFF;
+            color: white;
+            padding: 15px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 9999;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            animation: slideUp 0.3s ease;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .install-prompt-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .install-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .install-text {
+            flex: 1;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+
+        .install-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .install-btn {
+            background: white;
+            color: #007BFF;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .dismiss-btn {
+            background: transparent;
+            color: white;
+            border: 1px solid white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* PWA Standalone Mode */
+        @media (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+            
+            .install-prompt {
+                display: none !important;
+            }
+        }
+        
+        /* GLOBAL OVERFLOW FIX */
+        .main-container-border * {
+            max-width: 100%;
+        }
+        
+        /* Mobile specific fixes */
+        @media screen and (max-width: 480px) {
+            .control select, .control button {
+                min-width: 100%;
+            }
+            
+            .view-toggle button {
+                min-width: 100%;
+                max-width: 100%;
+            }
+            
+            .tab-button {
+                min-width: 100%;
+                max-width: 100%;
+            }
+            
+            .modal-content {
+                padding: 20px 15px;
+                width: 95%;
+            }
+        }
+
+        .main-layout-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Layout Desktop: 2 Kolom */
+        @media screen and (min-width: 768px) {
+            .main-layout-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr; /* Membagi dua kolom sama besar */
+                gap: 20px;
+                width: 100%;
+            }
+
+            /* Mengatur Posisi Spesifik */
+            .pv-section { grid-area: 1 / 1; }      /* Baris 1, Kolom 1 */
+            .energi-section { grid-area: 1 / 2; }  /* Baris 1, Kolom 2 */
+            .battery-section { grid-area: 2 / 1; } /* Baris 2, Kolom 1 */
+            .extra-section { grid-area: 2 / 2; }   /* Baris 2, Kolom 2 */
+
+            /* Memastikan tidak ada margin bottom manual yang merusak grid */
+            .info-section {
+                margin-bottom: 0 !important;
+            }
+        }
+
+        /* Penyesuaian agar kartu tetap rapi */
+        .info-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- PWA Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <div class="install-prompt-content">
+            <div class="install-icon">📱</div>
+            <div class="install-text">
+                <strong>Install MPPT Monitoring</strong><br>
+                Untuk pengalaman yang lebih baik, install aplikasi ini di perangkat Anda.
+            </div>
+        </div>
+        <div class="install-actions">
+            <button class="dismiss-btn" onclick="dismissInstallPrompt()">Nanti</button>
+            <button class="install-btn" onclick="installApp()">Install</button>
+        </div>
+    </div>
+
+    <!-- Modal/Popup untuk input nama klien -->
+    <div class="modal active" id="clientModal">
+        <div class="modal-content">
+            <h2>MPPT Monitoring System</h2>
+            <p>Masukkan <b>Nama klien</b> untuk memulai monitoring</p>
+            <input type="text" id="clientNameInput" placeholder="Contoh: techfine.001" autofocus>
+            <button onclick="startMonitoring()">Mulai Monitoring</button>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Ganti Klien -->
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="confirmation-content">
+            <div class="confirmation-icon">⚠️</div>
+            <h3>Ganti <b>Nama Klien</b>?</h3>
+            <p>Apakah Anda yakin ingin mengganti <b>Nama Klien</b>?</p>
+            <p><strong>Nama Klien saat ini: <span id="currentClientName">-</span></strong></p>
+            <div class="button-group-modal">
+                <button class="btn-secondary" onclick="hideConfirmation()">Batal</button>
+                <button class="btn-danger" onclick="confirmChangeClient()">Ya, Ganti Nama Klien</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+      <div class="main-container-border">
+        <div class="guardian-container">
+            <section class="section-info">
+                <h1><font color='blue'><b>MPPT Monitoring</b></font></h1>
+                
+                <div class="status-container">
+                    <span class="status-indicator status-disconnected" id="status-indicator"></span>
+                    <span id="connection-text">Server Status: Disconnected</span>
+                </div>
+                <div class="last-update">
+                    Last update: <span id="last-update">--:--:--</span>
+                </div>
+            </section>
+
+            <!-- Tab Navigation -->
+            <div class="tab-container-main">
+                <button class="tab-button active" data-tab="main">Main</button>
+                <button class="tab-button" data-tab="energy">Riwayat Energi</button>
+            </div>
+
+            <!-- Tab Content: Main -->
+            <div id="tab-main" class="tab-content-main" style="display: block;">
+            <div class="main-layout-grid">
+              <section class="info-section pv-section">
+                <div class="icon-container">
+                    <span class="icon-placeholder solar-panel" id="pv_icon">☀️</span>
+                    <div id="charging-flow" class="arrow-flow-container">
+                        <div class="arrow-mini">▼</div>
+                        <div class="arrow-mini">▼</div>
+                        <div class="arrow-mini">▼</div>
+                        <div class="arrow-mini">▼</div>
+                        <div class="arrow-mini">▼</div>
+                        <div class="arrow-mini">▼</div>
+                        <div class="arrow-mini">▼</div>
+                    </div>
+                </div>
+                <div class="info-card pv-info">
+                    <h3 class="card-title">PV Information</h3>
+                    <div class="metric">
+                        <span class="metric-label">Voltage:</span>
+                        <span class="metric-value"><span id="voltagepv">0.00</span><span class="unit">V</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Current:</span>
+                        <span class="metric-value"><span id="currentpv">0.00</span><span class="unit">A</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">PSH:</span>
+                        <span class="metric-value"><span id="psh">0.00</span><span class="unit">Jam</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Status Charge:</span>
+                        <span class="metric-value" id="chargestate">---</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">MCU Temperature:</span>
+                        <span class="metric-value"><span id="tempmcu">0.00</span><span class="unit">&#8451;</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Heatsink Temperature:</span>
+                        <span class="metric-value"><span id="tempheatsink">0.00</span><span class="unit">&#8451;</span></span>
+                    </div>
+                </div>
+              </section>
+
+              <section class="info-section battery-section">
+                <div class="icon-container">
+                    <span class="icon-placeholder battery">&#128267;</span>
+                </div>
+                <div class="info-card battery-info">
+                    <h3 class="card-title">Battery Information</h3>
+                    <div class="metric">
+                        <span class="metric-label">Voltage:</span>
+                        <span class="metric-value"><span id="voltagebat">0.00</span><span class="unit">V</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Current:</span>
+                        <span class="metric-value"><span id="currentbat">0.00</span><span class="unit">A</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Power:</span>
+                        <span class="metric-value"><span id="powerbat">0.00</span><span class="unit">W</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Max Current:</span>
+                        <span class="metric-value"><span id="ampbatmax">0.00</span><span class="unit">A</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Max Power:</span>
+                        <span class="metric-value"><span id="powerbatmax">0.00</span><span class="unit">W</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Status Baterai:</span>
+                        <span class="metric-value" id="batfullstate">---</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Temperature:</span>
+                        <span class="metric-value"><span id="tempbat-value">0.00</span><span class="unit" id="tempbat-unit">&#8451;</span></span>
+                    </div>
+                </div>
+              </section>
+
+              <section class="info-section energi-section">
+                <div class="icon-container">
+                    <span class="icon-placeholder energi">&#9889;</span>
+                </div>
+                <div class="info-card energi-info">
+                    <h3 class="card-title">Energy Information</h3>
+                    <div class="metric">
+                        <span class="metric-label">Energy Today:</span>
+                        <span class="metric-value"><span id="energyah">0</span><span class="unit">Ah</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Energy Today:</span>
+                        <span class="metric-value"><span id="energytoday">0.00</span><span class="unit">KWh</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Energy Yesterday:</span>
+                        <span class="metric-value"><span id="energyyesterday">0.00</span><span class="unit">KWh</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Energy This Month:</span>
+                        <span class="metric-value"><span id="energymonth">0.00</span><span class="unit">KWh</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Energy Total:</span>
+                        <span class="metric-value"><span id="energytotal">0.00</span><span class="unit">KWh</span></span>
+                    </div>
+
+                    <div class="metric">
+                        <span class="metric-label">Month Cost:</span>
+                        <span class="metric-value cost-highlight">
+                        <span class="unit">Rp </span><span id="monthcost">0.00</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Cost:</span>
+                        <span class="metric-value cost-highlight">
+                        <span class="unit">Rp </span><span id="totalcost">0.00</span></span>
+                    </div>
+                </div>
+              </section>
+
+              <section class="info-section extra-section">
+                <div class="icon-container">
+                    <span class="icon-placeholder controller">⚙️</span>
+                </div>
+                <div class="info-card load-info">
+                    <h3 class="card-title">Extra Information</h3>
+                    <div class="metric">
+                        <span class="metric-label">Load Percentage:</span>
+                        <span class="metric-value"><span id="loadpercentage">0.00</span><span class="unit">%</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Status Load:</span>
+                        <span class="metric-value" id="dcloadstate">---</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Bulk Charge Setting:</span>
+                        <span class="metric-value"><span id="bulkcharge">0.00</span><span class="unit">V</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Float Charge Setting:</span>
+                        <span class="metric-value"><span id="floatcharge">0.00</span><span class="unit">V</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Low Voltage Off Setting:</span>
+                        <span class="metric-value"><span id="lowvoloff">0.00</span><span class="unit">V</span></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Status Code:</span>
+                        <span class="metric-value">
+                           <span id="errorvalue">0x00</span>
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Free RAM:</span>
+                        <span class="metric-value"><span id="freeram">0.00</span><span class="unit">B</span></span>
+                    </div>
+                </div>
+              </section>
+            </div>
+            </div>
+            
+            <!-- Tab Content: Riwayat Energi -->
+            <div id="tab-energy" class="tab-content-main" style="display: none;">
+                <div class="dashboard-container">
+                    <!-- Bagian Riwayat Energi Harian -->
+                    <div class="data-section">
+                        <h2>📅 Riwayat Energi Harian</h2>
+                        <div class="control">
+                            <select id="yearSelectDaily">
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028</option>
+                                <option value="2029">2029</option>
+                                <option value="2030">2030</option>
+                                <option value="2031">2031</option>
+                                <option value="2032">2032</option>
+                                <option value="2033">2033</option>
+                                <option value="2034">2034</option>
+                                <option value="2035">2035</option>
+                                <option value="2036">2036</option>
+                                <option value="2037">2037</option>
+                                <option value="2038">2038</option>
+                                <option value="2039">2039</option>
+                                <option value="2040">2040</option>
+                                <option value="2041">2041</option>
+                                <option value="2042">2042</option>
+                                <option value="2043">2043</option>
+                                <option value="2044">2044</option>
+                                <option value="2045">2045</option>
+                                <option value="2046">2046</option>
+                            </select>
+                            <select id="monthSelectDaily">
+                                <option value="">-- Pilih Bulan --</option>
+                                <option value="01">Januari (01)</option>
+                                <option value="02">Februari (02)</option>
+                                <option value="03">Maret (03)</option>
+                                <option value="04">April (04)</option>
+                                <option value="05">Mei (05)</option>
+                                <option value="06">Juni (06)</option>
+                                <option value="07">Juli (07)</option>
+                                <option value="08">Agustus (08)</option>
+                                <option value="09">September (09)</option>
+                                <option value="10">Oktober (10)</option>
+                                <option value="11">November (11)</option>
+                                <option value="12">Desember (12)</option>
+                            </select>
+                            <button type="button" class="daily-button" onclick="requestData('daily')">📊 Cek Data Harian</button>
+                        </div>
+                        <div class="status" id="dataStatusDaily"></div>
+                        
+                        <div class="view-toggle">
+                            <button class="daily" onclick="showEnergyView('daily', 'table')">📋 Lihat Daftar</button>
+                            <button class="daily" onclick="showEnergyView('daily', 'chart')">📈 Lihat Grafik</button>
+                        </div>
+
+                        <div class="table-chart-container">
+                            <div id="tableViewDaily" class="table-container">
+                                <table class="daily-table">
+                                    <thead><tr><th>Tanggal</th><th>Energi</th></tr></thead>
+                                    <tbody id="tableBodyDaily"></tbody>
+                                </table>
+                            </div>
+
+                            <div id="chartViewDaily" class="chart-container-mobile" style="display:none;">
+                                <canvas id="energyChartDaily"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bagian Riwayat Energi Bulanan -->
+                    <div class="data-section monthly-section">
+                        <h2>📊 Riwayat Energi Bulanan</h2>
+                        <div class="control">
+                            <select id="yearSelectMonthly">
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028</option>
+                                <option value="2029">2029</option>
+                                <option value="2030">2030</option>
+                                <option value="2031">2031</option>
+                                <option value="2032">2032</option>
+                                <option value="2033">2033</option>
+                                <option value="2034">2034</option>
+                                <option value="2035">2035</option>
+                                <option value="2036">2036</option>
+                                <option value="2037">2037</option>
+                                <option value="2038">2038</option>
+                                <option value="2039">2039</option>
+                                <option value="2040">2040</option>
+                                <option value="2041">2041</option>
+                                <option value="2042">2042</option>
+                                <option value="2043">2043</option>
+                                <option value="2044">2044</option>
+                                <option value="2045">2045</option>
+                                <option value="2046">2046</option>
+                            </select>
+                            <button type="button" class="monthly-button" onclick="requestData('monthly')">📅 Cek Data Bulanan</button>
+                        </div>
+                        <div class="status" id="dataStatusMonthly"></div>
+                        
+                        <div class="view-toggle">
+                            <button class="monthly" onclick="showEnergyView('monthly', 'table')">📋 Lihat Daftar</button>
+                            <button class="monthly" onclick="showEnergyView('monthly', 'chart')">📈 Lihat Grafik</button>
+                        </div>
+
+                        <div class="table-chart-container">
+                            <div id="tableViewMonthly" class="table-container">
+                                <table class="monthly-table">
+                                    <thead><tr><th>Bulan</th><th>Energi</th></tr></thead>
+                                    <tbody id="tableBodyMonthly"></tbody>
+                                </table>
+                            </div>
+
+                            <div id="chartViewMonthly" class="chart-container-mobile" style="display:none;">
+                                <canvas id="energyChartMonthly"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <section class="section-info-extended" style="display: flex; justify-content: space-around; 
+              margin-top: 15px; background-color: white; border: 2px solid #007BFF; 
+              border-radius: 15px; padding: 15px 5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); width: 100%;">
+              <div style="flex: 1; text-align: center; border-right: 1px solid #eee; padding: 0 5px;">
+                <div style="font-weight: bold; font-size: 14px; color: #333;">Sinyal WiFi:</div>
+                <div id="sinyalwifi" style="font-size: 16px; font-weight: bold; color: #2ecc71; margin-top: 4px;">---</div>
+              </div>
+            
+              <div style="flex: 1; text-align: center; padding: 0 5px;">
+                  <div style="font-weight: bold; font-size: 14px; color: #333;">Device IP:</div>
+                  <div id="device-ip-address" style="font-size: 16px; font-weight: bold; color: #3498db; margin-top: 4px;">---</div>
+              </div>
+            </section>
+
+            <section class="section-info">
+                <font color='blue'><b>Teguh Sakura</b>&trade; </font><br>
+                <font color='blue'>&#9993;  <b>teguh.sakura@yahoo.com</b></font><br>
+                &#127978; <a href="http://tokopedia.com/teguhhydrofarm" style='color:green'><b>Tokopedia</b></a> &nbsp; &nbsp; &nbsp;    &nbsp; &#127978; <a href="https://shopee.co.id/teguhfarm" style='color:#ee4d2d'><b>Shopee</b></a>
+                <br>
+            </section>
+
+            <!-- Client Info Bar -->
+            <div class="client-info-container">
+                <div class="client-name-display">
+                    <span class="client-name-label">Nama Klien Saat Ini:</span>
+                    <span class="client-name-value" id="clientNameDisplay">-</span>
+                </div>
+                <div class="change-client-container">  
+                    <button class="change-client-btn" onclick="showConfirmation()">
+                    <span>✏️</span> <b>Ganti Nama Klien</b>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+// ===== PWA INSTALL FUNCTIONALITY =====
+let deferredPrompt;
+const installPrompt = document.getElementById('installPrompt');
+
+// Event listener for beforeinstallprompt
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    setTimeout(() => {
+        if (!isAppInstalled()) {
+            showInstallPrompt();
+        }
+    }, 5000);
+});
+
+function isAppInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
+}
+
+function showInstallPrompt() {
+    installPrompt.style.display = 'flex';
+}
+
+function dismissInstallPrompt() {
+    installPrompt.style.display = 'none';
+    localStorage.setItem('installPromptDismissed', 'true');
+}
+
+function installApp() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            deferredPrompt = null;
+            installPrompt.style.display = 'none';
+        });
+    }
+}
+
+window.addEventListener('appinstalled', (evt) => {
+    console.log('MPPT Monitoring was installed successfully');
+    installPrompt.style.display = 'none';
+});
+
+// ===== KONFIGURASI GLOBAL =====
+const MQTT_CONFIG = {
+    url: 'wss://broker.emqx.io:8084/mqtt',
+    options: {
+        clientId: 'web_mppt_' + Math.random().toString(16).substr(2, 8),
+        username: 'emqx',
+        password: 'public',
+        clean: true,
+        reconnectPeriod: 3000,
+        connectTimeout: 10000,
+        keepalive: 60,
+        protocolVersion: 4
+    }
+};
+
+// --- TAMBAHKAN LOGIKA INI ---
+let mqttClient = null;
+let isConnected = false;
+let currentClientName = '';
+let currentTopic = '';
+
+
+// ===== VARIABEL UNTUK TABEL ENERGI =====
+let currentDailyData = null;
+let currentMonthlyData = null;
+let dailyChart = null;
+let monthlyChart = null;
+let energyMqttClient = null;
+let currentResponseTopic = '';
+
+// ===== SERVICE WORKER REGISTRATION =====
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(function(registration) {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(function(error) {
+                console.log('ServiceWorker registration failed: ', error);
+            });
+    });
+}
+
+// ===== FUNGSI MODAL & KONFIRMASI =====
+function startMonitoring() {
+    const clientNameInput = document.getElementById('clientNameInput');
+    const clientName = clientNameInput.value.trim();
+    
+    if (!clientName) {
+        alert('Silakan masukkan nama klien!');
+        clientNameInput.focus();
+        return;
+    }
+    
+    currentClientName = clientName;
+    currentTopic = `mppt_techfine_samoto_amsan/${currentClientName}/alldata`;
+    
+    document.getElementById('clientNameDisplay').textContent = currentClientName;
+    document.getElementById('clientModal').classList.remove('active');
+    document.getElementById('mainContent').classList.add('active');
+    
+    connectMQTT();
+    initEnergyMQTT();
+    
+    localStorage.setItem('mppt_client_name', currentClientName);
+}
+
+function showConfirmation() {
+    document.getElementById('currentClientName').textContent = currentClientName || '-';
+    document.getElementById('confirmationModal').classList.add('active');
+}
+
+function hideConfirmation() {
+    document.getElementById('confirmationModal').classList.remove('active');
+}
+
+function confirmChangeClient() {
+    hideConfirmation();
+    
+    if (mqttClient) {
+        mqttClient.end();
+        mqttClient = null;
+        isConnected = false;
+    }
+    
+    if (energyMqttClient) {
+        if (currentResponseTopic) {
+            energyMqttClient.unsubscribe(currentResponseTopic);
+        }
+        energyMqttClient.end();
+        energyMqttClient = null;
+    }
+    
+    updateConnectionStatus('Disconnected', 'status-disconnected');
+    resetUI();
+    
+    document.getElementById('clientModal').classList.add('active');
+    document.getElementById('mainContent').classList.remove('active');
+    
+    const clientNameInput = document.getElementById('clientNameInput');
+    clientNameInput.value = '';
+    clientNameInput.focus();
+}
+
+function resetUI() {
+    const resetValues = {
+        'voltagepv': '0.0',
+        'currentpv': '0.0',
+        'psh': '0.0',
+        'tempmcu': '0.0',
+        'tempheatsink': '0.0',
+        'voltagebat': '0.0',
+        'currentbat': '0.0',
+        'powerbat': '0.00',
+        'ampbatmax': '0.0',
+        'powerbatmax': '0.0',
+        'bulkcharge': '0.0',
+        'floatcharge': '0.0',
+        'lowvoloff': '0.0',
+        'tempbat-value': '0.00',
+        'energyah': '0',
+        'energytoday': '0.00',
+        'energyyesterday': '0.00',
+        'energymonth': '0.00',
+        'energytotal': '0.00',
+        'monthcost': '0.00',
+        'totalcost': '0.00',
+        'freeram': '0.00',
+        'device-ip-address': '---', // Tetap di sini
+        'sinyalwifi': '---' // <-- BARIS TAMBAHAN    
+    };
+    
+    Object.keys(resetValues).forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = resetValues[id];
+        }
+    });
+    
+    const errorElement = document.getElementById('errorvalue');
+    if (errorElement) {
+        errorElement.textContent = '0x00';
+        errorElement.style.color = '#4CAF50';
+    }
+
+    const statusElements = ['chargestate', 'batfullstate'];
+    statusElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = '---';
+            element.className = 'metric-value';
+        }
+    });
+
+    const pvIcon = document.getElementById('pv_icon');
+    if (pvIcon) {
+        pvIcon.textContent = '☀️';
+        pvIcon.className = 'icon-placeholder solar-panel';
+    }
+    
+    document.getElementById('last-update').textContent = '--:--:--';
+    
+    const tempbatUnit = document.getElementById('tempbat-unit');
+    if (tempbatUnit) {
+        tempbatUnit.style.display = 'inline';
+    }
+}
+
+// ===== FUNGSI MQTT UNTUK MAIN DASHBOARD =====
+function connectMQTT() {
+    if (isConnected || !currentClientName) return;
+    
+    console.log(`Connecting to MQTT for client: ${currentClientName}`);
+    console.log(`Topic: ${currentTopic}`);
+    
+    updateConnectionStatus('Connecting...', 'status-connecting');
+    
+    try {
+        MQTT_CONFIG.options.clientId = `mppt_${currentClientName}_${Math.random().toString(16).substr(2, 8)}`;
+        
+        mqttClient = mqtt.connect(MQTT_CONFIG.url, MQTT_CONFIG.options);
+        setupMQTTEvents();
+        
+    } catch (error) {
+        console.error('Connection error:', error);
+        updateConnectionStatus('Connection failed', 'status-disconnected');
+    }
+}
+
+function setupMQTTEvents() {
+    mqttClient.on('connect', function () {
+        console.log(`✓ Connected to MQTT for client: ${currentClientName}`);
+        isConnected = true;
+        updateConnectionStatus('Connected', 'status-connected');
+        subscribeToTopic();
+    });
+    
+    mqttClient.on('message', function (topic, message) {
+        console.log(`📨 Message from ${topic}:`, message.toString().substring(0, 100) + '...');
+        processMQTTMessage(message.toString());
+    });
+    
+    mqttClient.on('error', function (error) {
+        console.error('MQTT Error:', error);
+        updateConnectionStatus('Error: ' + error.message, 'status-disconnected');
+        isConnected = false;
+    });
+    
+    mqttClient.on('close', function () {
+        console.log('Connection closed');
+        updateConnectionStatus('Disconnected', 'status-disconnected');
+        isConnected = false;
+    });
+    
+    mqttClient.on('reconnect', function () {
+        console.log('Reconnecting...');
+        updateConnectionStatus('Reconnecting...', 'status-connecting');
+    });
+    
+    mqttClient.on('offline', function () {
+        console.log('Client offline');
+        updateConnectionStatus('Offline', 'status-disconnected');
+        isConnected = false;
+    });
+}
+
+function subscribeToTopic() {
+    if (mqttClient && isConnected && currentTopic) {
+        mqttClient.subscribe(currentTopic, { qos: 0 }, function (err) {
+            if (err) {
+                console.error('Subscription failed:', err);
+            } else {
+                console.log('✓ Subscribed to topic:', currentTopic);
+            }
+        });
+    }
+}
+
+function updateConnectionStatus(text, statusClass) {
+    const indicator = document.getElementById('status-indicator');
+    const textElement = document.getElementById('connection-text');
+    
+    if (indicator) indicator.className = 'status-indicator ' + statusClass;
+    if (textElement) textElement.textContent = 'Server Status: ' + text;
+}
+
+function processMQTTMessage(message) {
+    try {
+        const data = JSON.parse(message);
+        updateLastUpdateTime();
+        updateUIWithData(data);
+        
+    } catch (error) {
+        console.error('Error parsing JSON:', error);
+    }
+}
+
+function updateLastUpdateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    document.getElementById('last-update').textContent = timeString;
+}
+
+function updateElementText(id, text) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+function updateErrorValue(value) {
+    const element = document.getElementById('errorvalue');
+    if (element) {
+        const num = parseInt(value);
+        const hexDisplay = '0x' + num.toString().padStart(2, '0').toUpperCase();
+        element.textContent = hexDisplay;
+        element.style.color = (num === 20) ? '#4CAF50' : '#f44336';
+    }
+}
+
+function updateStatusText(id, value, stateOn, stateOff, classOn, classOff) {
+    const element = document.getElementById(id);
+    if (element) {
+        const isOn = (value === true || value === 1 || value === "1" || value === "true");
+        const isOff = (value === false || value === 0 || value === "0" || value === "false");
+
+        if (isOn) {
+            element.textContent = stateOn;
+            element.className = 'metric-value ' + classOn;
+        } else if (isOff) {
+            element.textContent = stateOff;
+            element.className = 'metric-value ' + classOff;
+        } else {
+            element.textContent = '---';
+            element.className = 'metric-value';
+        }
+    }
+}
+
+function updateTempBat(value) {
+    const element = document.getElementById('tempbat-value');
+    const unitElement = document.getElementById('tempbat-unit');
+
+    if (element && unitElement) {
+        const val = parseFloat(value);
+        if (val === 255) {
+            element.textContent = 'No Sensor';
+            element.className = 'metric-value no-sensor';
+            unitElement.style.display = 'none';
+        } else {
+            element.textContent = val.toFixed(2);
+            element.className = 'metric-value';
+            unitElement.style.display = 'inline';
+        }
+    }
+}
+
+function updatePvIcon(voltageValue) {
+    const pvIcon = document.getElementById('pv_icon');
+    const voltage = parseFloat(voltageValue);
+    if (pvIcon) {
+        if (voltage < 1) {
+            pvIcon.textContent = '🌙';
+            pvIcon.className = 'icon-placeholder moon-icon';
+        } else {
+            pvIcon.textContent = '☀️';
+            pvIcon.className = 'icon-placeholder solar-panel';
+        }
+    }
+}
+
+function updateUIWithData(data) {
+    // Update data PV
+    if (data.voltagepv !== undefined) {
+        updateElementText('voltagepv', data.voltagepv.toFixed(2));
+        updatePvIcon(data.voltagepv);
+    }
+    
+    if (data.currentpv !== undefined) {
+        updateElementText('currentpv', data.currentpv.toFixed(2));
+    }
+    
+    if (data.psh !== undefined) {
+        updateElementText('psh', data.psh.toFixed(2));
+    }
+    
+    if (data.tempmcu !== undefined) {
+        updateElementText('tempmcu', data.tempmcu.toFixed(2));
+    }
+    
+    if (data.tempheatsink !== undefined) {
+        updateElementText('tempheatsink', data.tempheatsink.toFixed(2));
+    }
+    
+    // Update data Battery
+    if (data.voltagebat !== undefined) {
+        updateElementText('voltagebat', data.voltagebat.toFixed(2));
+    }
+    
+    if (data.currentbat !== undefined) {
+        updateElementText('currentbat', data.currentbat.toFixed(2));
+    }
+    
+    if (data.powerbat !== undefined) {
+        updateElementText('powerbat', data.powerbat.toFixed(1));
+    }
+
+    if (data.ampbatmax !== undefined) {
+        updateElementText('ampbatmax', data.ampbatmax.toFixed(1));
+    }
+
+    if (data.powerbatmax !== undefined) {
+        updateElementText('powerbatmax', data.powerbatmax.toFixed(1));
+    }
+
+    if (data.bulkcharge !== undefined) {
+        updateElementText('bulkcharge', data.bulkcharge.toFixed(1));
+    }
+
+    if (data.floatcharge !== undefined) {
+        updateElementText('floatcharge', data.floatcharge.toFixed(1));
+    }
+
+    if (data.lowvoloff !== undefined) {
+        updateElementText('lowvoloff', data.lowvoloff.toFixed(1));
+    }
+
+    if (data.freeram !== undefined) {
+        updateElementText('freeram', data.freeram.toFixed(0));
+    }
+
+    if (data.errorvalue !== undefined) {
+        updateErrorValue(data.errorvalue);
+    }
+
+    if (data.tempbat !== undefined) {
+        updateTempBat(data.tempbat);
+    }
+
+    // Update IP Address
+    if (data.alamatip !== undefined) {
+        updateElementText('device-ip-address', data.alamatip);
+    }
+
+    // Update Sinyal WiFi (asumsi format JSON Anda: "sinyalwifi": -32.3)
+    if (data.sinyalwifi !== undefined) {
+       // Format sinyal wifi dengan menambahkan ' dB'
+       updateElementText('sinyalwifi', `${data.sinyalwifi} dB`);
+    }
+
+    // Update status
+    if (data.dcloadstate !== undefined) {
+        updateStatusText('dcloadstate', data.dcloadstate, 'On', 'Off', 'on', 'off');
+    }
+
+    if (data.chargestate !== undefined) {
+        updateStatusText('chargestate', data.chargestate, 'Charge', 'Off', 'charging', 'not-charging');
+    }
+    
+    if (data.batfullstate !== undefined) {
+        updateStatusText('batfullstate', data.batfullstate, 'Terisi Penuh', 'Belum Penuh', 'battery-full-status', 'battery-not-full-status');
+    }
+
+    // Update energy data
+    if (data.energyah !== undefined) {
+        updateElementText('energyah', data.energyah.toFixed(2));
+    }
+
+    if (data.energytoday !== undefined) {
+        updateElementText('energytoday', data.energytoday.toFixed(2));
+    }
+
+    if (data.energyyesterday !== undefined) {
+        updateElementText('energyyesterday', data.energyyesterday.toFixed(2));
+    }
+
+    if (data.energymonth !== undefined) {
+        updateElementText('energymonth', data.energymonth.toFixed(2));
+    }
+
+    if (data.energytotal !== undefined) {
+        updateElementText('energytotal', data.energytotal.toFixed(2));
+    }
+
+    if (data.monthcost !== undefined) {
+        updateElementText('monthcost', data.monthcost.toFixed(2));
+    }
+
+    if (data.totalcost !== undefined) {
+        updateElementText('totalcost', data.totalcost.toFixed(2));
+    }
+
+    const arrowElement = document.getElementById('charging-flow');
+    if (arrowElement && data.chargestate !== undefined) {
+        // Cek jika statusnya true (charging)
+        const isCharging = (data.chargestate === true || data.chargestate === 1 || data.chargestate === "1");
+        
+        if (isCharging) {
+            arrowElement.classList.add('show-flow');
+        } else {
+            arrowElement.classList.remove('show-flow');
+        }
+    }
+}
+
+// ===== FUNGSI MQTT UNTUK TABEL ENERGI =====
+// Tambahkan fungsi ini di bagian FUNGSI MQTT UNTUK TABEL ENERGI
+function isDesktop() {
+    // Sesuaikan batas lebar ini sesuai keinginan Anda
+    return window.matchMedia('(min-width: 768px)').matches;
+}
+
+function initEnergyMQTT() {
+    if (energyMqttClient && energyMqttClient.connected) {
+        if (currentResponseTopic) {
+            energyMqttClient.unsubscribe(currentResponseTopic);
+        }
+        energyMqttClient.end();
+    }
+    
+    if (!currentClientName) return;
+    
+    const clientId = 'web_energy_' + Math.random().toString(16).substr(2, 8);
+    const baseTopic = `mppt_techfine_samoto_amsan/${currentClientName}`;
+    const requestTopic = `${baseTopic}/request`;
+    currentResponseTopic = `${baseTopic}/response`;
+    
+    energyMqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+        clientId: clientId,
+        username: 'emqx',
+        password: 'public'
+    });
+    
+    energyMqttClient.on('connect', () => {
+        console.log(`✅ Energy MQTT connected for client: ${currentClientName}`);
+        
+        energyMqttClient.subscribe(currentResponseTopic, (err) => {
+            if (!err) {
+                console.log(`Subscribed to ${currentResponseTopic}`);
+            }
+        });
+    });
+    
+    energyMqttClient.on('message', (topic, payload) => {
+        if (topic === currentResponseTopic) {
+            try {
+                const res = JSON.parse(payload.toString());
+                
+                if (res.type === 'daily') {
+                    processDailyResponse(res);
+                } else if (res.type === 'monthly') {
+                    processMonthlyResponse(res);
+                }
+            } catch (e) {
+                console.error('Error parsing response:', e);
+            }
+        }
+    });
+    
+    energyMqttClient.on('error', (err) => {
+        console.error('Energy MQTT error:', err);
+    });
+}
+
+function requestData(type) {
+    if (!energyMqttClient || !energyMqttClient.connected) {
+        alert('Tidak terhubung ke MQTT. Silakan periksa koneksi.');
+        return;
+    }
+    
+    if (!currentClientName) {
+        alert('Nama klien belum dipilih!');
+        return;
+    }
+    
+    const baseTopic = `mppt_techfine_samoto_amsan/${currentClientName}/request`;
+    let payload = {};
+    
+    if (type === 'daily') {
+        const year = document.getElementById('yearSelectDaily').value;
+        const month = document.getElementById('monthSelectDaily').value;
+        if (!month) {
+            alert('Pilih bulan terlebih dahulu!');
+            return;
+        }
+        payload = {
+            action: 'fetch',
+            type: 'daily',
+            year: year,
+            month: month
+        };
+        document.getElementById('dataStatusDaily').className = 'status loading';
+        document.getElementById('dataStatusDaily').textContent = '📤 Mengirim permintaan data harian...';
+    } else if (type === 'monthly') {
+        const year = document.getElementById('yearSelectMonthly').value;
+        payload = {
+            action: 'fetch',
+            type: 'monthly',
+            year: year
+        };
+        document.getElementById('dataStatusMonthly').className = 'status loading';
+        document.getElementById('dataStatusMonthly').textContent = '📤 Mengirim permintaan data bulanan...';
+    }
+    
+    energyMqttClient.publish(baseTopic, JSON.stringify(payload));
+}
+
+function processDailyResponse(res) {
+    currentDailyData = res;
+    const tableBody = document.getElementById('tableBodyDaily');
+    const statusEl = document.getElementById('dataStatusDaily');
+    
+    tableBody.innerHTML = '';
+    if (dailyChart) dailyChart.destroy();
+
+    if (res.found && res.data && res.data.length > 0) {
+        res.data.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${item.date}</td><td>${item.energy.toFixed(2)} kWh</td>`;
+            tableBody.appendChild(tr);
+        });
+
+        const total = res.total !== undefined ? res.total.toFixed(2) : '0.00';
+        const totalRow = document.createElement('tr');
+        totalRow.style.background = '#e8f4fc';
+        totalRow.style.fontWeight = 'bold';
+        totalRow.innerHTML = `
+          <td style="color:green;"><strong>TOTAL BULAN INI</strong></td>
+          <td style="color:green;">${total} kWh</td>
+        `;
+        tableBody.appendChild(totalRow);
+
+        statusEl.className = 'status success-daily';
+        statusEl.innerHTML = 
+          `✅ Data harian <span style="color:#27ae60;font-weight:bold;">${res.month}/${res.year}</span> ` +
+          `(<span style="color:#27ae60;font-weight:bold;">${res.data.length}</span> hari)<br>`;
+
+        renderDailyChart(res.data);
+    } else {
+        statusEl.className = 'status notfound';
+        statusEl.textContent = `📭 Tidak ada data harian untuk ${res.month}/${res.year}`;
+        showEnergyView('daily', 'table');
+    }
+}
+
+function processMonthlyResponse(res) {
+    currentMonthlyData = res;
+    const tableBody = document.getElementById('tableBodyMonthly');
+    const statusEl = document.getElementById('dataStatusMonthly');
+    
+    tableBody.innerHTML = '';
+    if (monthlyChart) monthlyChart.destroy();
+
+    if (res.found && res.data && res.data.length > 0) {
+        res.data.sort((a, b) => {
+            const monthA = parseInt(a.date.split('-')[0]);
+            const monthB = parseInt(b.date.split('-')[0]);
+            return monthA - monthB;
+        });
+
+        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        res.data.forEach(item => {
+            const monthNum = parseInt(item.date.split('-')[0]);
+            const monthName = monthNames[monthNum - 1] || `Bulan ${monthNum}`;
+            const year = item.date.split('-')[1];
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${monthName} ${year}</td>
+                <td>${item.energy.toFixed(2)} kWh</td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        const total = res.total !== undefined ? res.total.toFixed(2) : '0.00';
+        const totalRow = document.createElement('tr');
+        totalRow.style.background = '#e8f6ef';
+        totalRow.style.fontWeight = 'bold';
+        totalRow.innerHTML = `
+          <td style="color:blue;"><strong>TOTAL TAHUN INI</strong></td>
+          <td style="color:blue;">${total} kWh</td>
+        `;
+        tableBody.appendChild(totalRow);
+
+        statusEl.className = 'status success-monthly';
+        statusEl.innerHTML = 
+          `✅ Data bulanan <span style="color:#2980b9;font-weight:bold;">${res.year}</span> ` +
+          `(<span style="color:#2980b9;font-weight:bold;">${res.data.length}</span> bulan)<br>`;
+
+        renderMonthlyChart(res.data);
+    } else {
+        statusEl.className = 'status notfound';
+        statusEl.textContent = `📭 Tidak ada data bulanan untuk tahun ${res.year}`;
+        showEnergyView('monthly', 'table');
+    }
+}
+
+function renderDailyChart(data) {
+    const canvas = document.getElementById('energyChartDaily');
+    const ctx = canvas.getContext('2d');
+    
+    // Logika Deteksi Layar
+    const isDesktopView = isDesktop();
+    const axis = isDesktopView ? 'x' : 'y'; // 'x' untuk Vertikal (Desktop), 'y' untuk Horizontal (Mobile)
+
+    if (isDesktopView) {
+        // Mode Desktop (Vertikal): Tinggi Ditetapkan (e.g., 250px). Lebar akan 100%.
+        canvas.style.height = `250px`;
+        document.getElementById('chartViewDaily').style.height = `250px`;
+    } else {
+        // Mode Mobile (Horizontal): Hitung Tinggi Dinamis
+        const barHeight = 25; 
+        const axisPadding = 80; 
+        const requiredHeight = (data.length * barHeight) + axisPadding;
+        canvas.style.height = `${Math.max(250, requiredHeight)}px`;
+        document.getElementById('chartViewDaily').style.height = `${Math.max(250, requiredHeight)}px`;
+    }
+
+    const labels = data.map(d => d.date);
+    const values = data.map(d => d.energy);
+
+    if (dailyChart) dailyChart.destroy();
+    
+    dailyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Energi Harian (kWh)',
+                data: values,
+                backgroundColor: '#3498db',
+                borderColor: '#2980b9',
+                borderWidth: 1,
+                borderRadius: 5,
+                hoverBackgroundColor: '#2980b9'
+            }]
+        },
+        options: {
+            responsive: true,
+            // 💡 PERBAIKAN: Selalu gunakan false agar lebar 100% di desktop
+            maintainAspectRatio: false, 
+            indexAxis: axis, 
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                // ... (Konfigurasi scales tetap sama)
+                [isDesktopView ? 'x' : 'y']: {
+                    // Sumbu Kategori (Tanggal)
+                    ticks: {
+                        autoSkip: true,
+                        maxTicksLimit: 40
+                    }
+                },
+                [isDesktopView ? 'y' : 'x']: {
+                    // Sumbu Nilai (Energi)
+                    beginAtZero: true,
+                    title: { 
+                        display: true, 
+                        text: 'kWh',
+                        color: '#2980b9'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderMonthlyChart(data) {
+    const canvas = document.getElementById('energyChartMonthly');
+    const ctx = canvas.getContext('2d');
+
+    // Logika Deteksi Layar
+    const isDesktopView = isDesktop();
+    const axis = isDesktopView ? 'x' : 'y'; 
+    
+    data.sort((a, b) => {
+        const monthA = parseInt(a.date.split('-')[0]);
+        const monthB = parseInt(b.date.split('-')[0]);
+        return monthA - monthB;
+    });
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 
+                       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    
+    const labels = data.map(item => {
+        const monthNum = parseInt(item.date.split('-')[0]);
+        return monthNames[monthNum - 1] || `Bulan ${monthNum}`;
+    });
+    
+    const values = data.map(d => d.energy);
+
+    if (monthlyChart) monthlyChart.destroy();
+
+    if (isDesktopView) {
+        // Mode Desktop (Vertikal): Tinggi Ditetapkan (e.g., 250px). Lebar akan 100%.
+        canvas.style.height = `250px`;
+        document.getElementById('chartViewMonthly').style.height = `250px`;
+    } else {
+        // Mode Mobile (Horizontal): Hitung Tinggi Dinamis
+        const barHeight = 35; 
+        const axisPadding = 80;
+        const requiredHeight = (labels.length * barHeight) + axisPadding;
+        canvas.style.height = `${Math.max(250, requiredHeight)}px`;
+        document.getElementById('chartViewMonthly').style.height = `${Math.max(250, requiredHeight)}px`;
+    }
+
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Energi Bulanan (kWh)',
+                data: values,
+                backgroundColor: '#2ecc71',
+                borderColor: '#27ae60',
+                borderWidth: 2,
+                borderRadius: 5,
+                hoverBackgroundColor: '#27ae60'
+            }]
+        },
+        options: {
+            responsive: true,
+            // 💡 PERBAIKAN: Selalu gunakan false agar lebar 100% di desktop
+            maintainAspectRatio: false, 
+            indexAxis: axis, 
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                // ... (Konfigurasi scales tetap sama)
+                [isDesktopView ? 'x' : 'y']: {
+                    // Sumbu Kategori (Bulan)
+                },
+                [isDesktopView ? 'y' : 'x']: {
+                    // Sumbu Nilai (Energi)
+                    beginAtZero: true,
+                    title: { 
+                        display: true, 
+                        text: 'kWh',
+                        color: '#27ae60'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function showEnergyView(type, view) {
+    if (type === 'daily') {
+        if (view === 'table') {
+            document.getElementById('tableViewDaily').style.display = 'block';
+            document.getElementById('chartViewDaily').style.display = 'none';
+        } else {
+            document.getElementById('tableViewDaily').style.display = 'none';
+            document.getElementById('chartViewDaily').style.display = 'block';
+            if (dailyChart) {
+                dailyChart.resize();
+            }
+        }
+    } else if (type === 'monthly') {
+        if (view === 'table') {
+            document.getElementById('tableViewMonthly').style.display = 'block';
+            document.getElementById('chartViewMonthly').style.display = 'none';
+        } else {
+            document.getElementById('tableViewMonthly').style.display = 'none';
+            document.getElementById('chartViewMonthly').style.display = 'block';
+            if (monthlyChart) {
+                monthlyChart.resize();
+            }
+        }
+    }
+}
+
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab-button[data-tab]').forEach(button => {
+    button.addEventListener('click', function() {
+        const tabId = this.getAttribute('data-tab');
+        // Update active button
+        document.querySelectorAll('.tab-button[data-tab]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        // Show/hide content
+        document.getElementById('tab-main').style.display = tabId === 'main' ? 'block' : 'none';
+        document.getElementById('tab-energy').style.display = tabId === 'energy' ? 'block' : 'none';
+    });
+});
+
+// ===== INISIALISASI =====
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('MPPT Monitoring System initialized');
+    
+    // Cek jika ada nama klien yang disimpan di localStorage
+    const savedClientName = localStorage.getItem('mppt_client_name');
+    if (savedClientName) {
+        document.getElementById('clientNameInput').value = savedClientName;
+    }
+    
+    // Enter key untuk submit di input
+    document.getElementById('clientNameInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            startMonitoring();
+        }
+    });
+    
+    // Auto-focus pada input
+    document.getElementById('clientNameInput').focus();
+    
+    // Tutup modal konfirmasi dengan ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideConfirmation();
+        }
+    });
+    
+    // Tutup modal konfirmasi dengan klik di luar
+    document.getElementById('confirmationModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideConfirmation();
+        }
+    });
+    
+    // Mobile touch optimization
+    document.body.style.overflow = 'auto';
+    document.body.style.webkitOverflowScrolling = 'touch';
+    
+    const modals = document.querySelectorAll('.modal, .confirmation-modal');
+    modals.forEach(modal => {
+        modal.style.overflowY = 'auto';
+        modal.style.webkitOverflowScrolling = 'touch';
+    });
+    
+    // Better touch handling untuk buttons
+    document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('touchstart', function(e) {
+            this.style.opacity = '0.8';
+        }, { passive: true });
+        
+        button.addEventListener('touchend', function() {
+            this.style.opacity = '1';
+        }, { passive: true });
+    });
+    
+    // Fix untuk input focus di iOS
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('focus', function() {
+            setTimeout(() => {
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+    });
+    
+    // Fix untuk PWA standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        document.body.style.height = '100vh';
+        document.body.style.overflowY = 'auto';
+    }
+    
+    // Force hide horizontal scroll pada modal saat pertama kali
+    document.body.style.overflowX = 'hidden';
+    window.addEventListener('resize', function() {
+        document.body.style.overflowX = 'hidden';
+    });
+});
+</script>
+</body>
+</html>

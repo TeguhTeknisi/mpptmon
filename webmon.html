@@ -1152,48 +1152,6 @@
                     <!-- Bagian Riwayat Energi Harian -->
                     <div class="data-section">
                         <h2>📅 Riwayat Energi Harian</h2>
-                        <div class="control">
-                            <select id="yearSelectDaily">
-                                <option value="2025" selected>2025</option>
-                                <option value="2026">2026</option>
-                                <option value="2027">2027</option>
-                                <option value="2028">2028</option>
-                                <option value="2029">2029</option>
-                                <option value="2030">2030</option>
-                                <option value="2031">2031</option>
-                                <option value="2032">2032</option>
-                                <option value="2033">2033</option>
-                                <option value="2034">2034</option>
-                                <option value="2035">2035</option>
-                                <option value="2036">2036</option>
-                                <option value="2037">2037</option>
-                                <option value="2038">2038</option>
-                                <option value="2039">2039</option>
-                                <option value="2040">2040</option>
-                                <option value="2041">2041</option>
-                                <option value="2042">2042</option>
-                                <option value="2043">2043</option>
-                                <option value="2044">2044</option>
-                                <option value="2045">2045</option>
-                                <option value="2046">2046</option>
-                            </select>
-                            <select id="monthSelectDaily">
-                                <option value="">-- Pilih Bulan --</option>
-                                <option value="01">Januari (01)</option>
-                                <option value="02">Februari (02)</option>
-                                <option value="03">Maret (03)</option>
-                                <option value="04">April (04)</option>
-                                <option value="05">Mei (05)</option>
-                                <option value="06">Juni (06)</option>
-                                <option value="07">Juli (07)</option>
-                                <option value="08">Agustus (08)</option>
-                                <option value="09">September (09)</option>
-                                <option value="10">Oktober (10)</option>
-                                <option value="11">November (11)</option>
-                                <option value="12">Desember (12)</option>
-                            </select>
-                            <button type="button" class="daily-button" onclick="requestData('daily')">📊 Cek Data Harian</button>
-                        </div>
                         <div class="status" id="dataStatusDaily"></div>
                         
                         <div class="view-toggle">
@@ -1215,56 +1173,6 @@
                         </div>
                     </div>
 
-                    <!-- Bagian Riwayat Energi Bulanan -->
-                    <div class="data-section monthly-section">
-                        <h2>📊 Riwayat Energi Bulanan</h2>
-                        <div class="control">
-                            <select id="yearSelectMonthly">
-                                <option value="2025" selected>2025</option>
-                                <option value="2026">2026</option>
-                                <option value="2027">2027</option>
-                                <option value="2028">2028</option>
-                                <option value="2029">2029</option>
-                                <option value="2030">2030</option>
-                                <option value="2031">2031</option>
-                                <option value="2032">2032</option>
-                                <option value="2033">2033</option>
-                                <option value="2034">2034</option>
-                                <option value="2035">2035</option>
-                                <option value="2036">2036</option>
-                                <option value="2037">2037</option>
-                                <option value="2038">2038</option>
-                                <option value="2039">2039</option>
-                                <option value="2040">2040</option>
-                                <option value="2041">2041</option>
-                                <option value="2042">2042</option>
-                                <option value="2043">2043</option>
-                                <option value="2044">2044</option>
-                                <option value="2045">2045</option>
-                                <option value="2046">2046</option>
-                            </select>
-                            <button type="button" class="monthly-button" onclick="requestData('monthly')">📅 Cek Data Bulanan</button>
-                        </div>
-                        <div class="status" id="dataStatusMonthly"></div>
-                        
-                        <div class="view-toggle">
-                            <button class="monthly" onclick="showEnergyView('monthly', 'table')">📋 Lihat Daftar</button>
-                            <button class="monthly" onclick="showEnergyView('monthly', 'chart')">📈 Lihat Grafik</button>
-                        </div>
-
-                        <div class="table-chart-container">
-                            <div id="tableViewMonthly" class="table-container">
-                                <table class="monthly-table">
-                                    <thead><tr><th>Bulan</th><th>Energi</th></tr></thead>
-                                    <tbody id="tableBodyMonthly"></tbody>
-                                </table>
-                            </div>
-
-                            <div id="chartViewMonthly" class="chart-container-mobile" style="display:none;">
-                                <canvas id="energyChartMonthly"></canvas>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1872,48 +1780,6 @@ function initEnergyMQTT() {
     });
 }
 
-function requestData(type) {
-    if (!energyMqttClient || !energyMqttClient.connected) {
-        alert('Tidak terhubung ke MQTT. Silakan periksa koneksi.');
-        return;
-    }
-    
-    if (!currentClientName) {
-        alert('Nama klien belum dipilih!');
-        return;
-    }
-    
-    const baseTopic = `mppt_techfine_samoto_amsan/${currentClientName}/request`;
-    let payload = {};
-    
-    if (type === 'daily') {
-        const year = document.getElementById('yearSelectDaily').value;
-        const month = document.getElementById('monthSelectDaily').value;
-        if (!month) {
-            alert('Pilih bulan terlebih dahulu!');
-            return;
-        }
-        payload = {
-            action: 'fetch',
-            type: 'daily',
-            year: year,
-            month: month
-        };
-        document.getElementById('dataStatusDaily').className = 'status loading';
-        document.getElementById('dataStatusDaily').textContent = '📤 Mengirim permintaan data harian...';
-    } else if (type === 'monthly') {
-        const year = document.getElementById('yearSelectMonthly').value;
-        payload = {
-            action: 'fetch',
-            type: 'monthly',
-            year: year
-        };
-        document.getElementById('dataStatusMonthly').className = 'status loading';
-        document.getElementById('dataStatusMonthly').textContent = '📤 Mengirim permintaan data bulanan...';
-    }
-    
-    energyMqttClient.publish(baseTopic, JSON.stringify(payload));
-}
 
 function processDailyResponse(res) {
     currentDailyData = res;
@@ -1953,58 +1819,6 @@ function processDailyResponse(res) {
     }
 }
 
-function processMonthlyResponse(res) {
-    currentMonthlyData = res;
-    const tableBody = document.getElementById('tableBodyMonthly');
-    const statusEl = document.getElementById('dataStatusMonthly');
-    
-    tableBody.innerHTML = '';
-    if (monthlyChart) monthlyChart.destroy();
-
-    if (res.found && res.data && res.data.length > 0) {
-        res.data.sort((a, b) => {
-            const monthA = parseInt(a.date.split('-')[0]);
-            const monthB = parseInt(b.date.split('-')[0]);
-            return monthA - monthB;
-        });
-
-        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
-                           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-        res.data.forEach(item => {
-            const monthNum = parseInt(item.date.split('-')[0]);
-            const monthName = monthNames[monthNum - 1] || `Bulan ${monthNum}`;
-            const year = item.date.split('-')[1];
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${monthName} ${year}</td>
-                <td>${item.energy.toFixed(2)} kWh</td>
-            `;
-            tableBody.appendChild(tr);
-        });
-
-        const total = res.total !== undefined ? res.total.toFixed(2) : '0.00';
-        const totalRow = document.createElement('tr');
-        totalRow.style.background = '#e8f6ef';
-        totalRow.style.fontWeight = 'bold';
-        totalRow.innerHTML = `
-          <td style="color:blue;"><strong>TOTAL TAHUN INI</strong></td>
-          <td style="color:blue;">${total} kWh</td>
-        `;
-        tableBody.appendChild(totalRow);
-
-        statusEl.className = 'status success-monthly';
-        statusEl.innerHTML = 
-          `✅ Data bulanan <span style="color:#2980b9;font-weight:bold;">${res.year}</span> ` +
-          `(<span style="color:#2980b9;font-weight:bold;">${res.data.length}</span> bulan)<br>`;
-
-        renderMonthlyChart(res.data);
-    } else {
-        statusEl.className = 'status notfound';
-        statusEl.textContent = `📭 Tidak ada data bulanan untuk tahun ${res.year}`;
-        showEnergyView('monthly', 'table');
-    }
-}
 
 function renderDailyChart(data) {
     const canvas = document.getElementById('energyChartDaily');
@@ -2079,87 +1893,6 @@ function renderDailyChart(data) {
     });
 }
 
-function renderMonthlyChart(data) {
-    const canvas = document.getElementById('energyChartMonthly');
-    const ctx = canvas.getContext('2d');
-
-    // Logika Deteksi Layar
-    const isDesktopView = isDesktop();
-    const axis = isDesktopView ? 'x' : 'y'; 
-    
-    data.sort((a, b) => {
-        const monthA = parseInt(a.date.split('-')[0]);
-        const monthB = parseInt(b.date.split('-')[0]);
-        return monthA - monthB;
-    });
-
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 
-                       'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    
-    const labels = data.map(item => {
-        const monthNum = parseInt(item.date.split('-')[0]);
-        return monthNames[monthNum - 1] || `Bulan ${monthNum}`;
-    });
-    
-    const values = data.map(d => d.energy);
-
-    if (monthlyChart) monthlyChart.destroy();
-
-    if (isDesktopView) {
-        // Mode Desktop (Vertikal): Tinggi Ditetapkan (e.g., 250px). Lebar akan 100%.
-        canvas.style.height = `250px`;
-        document.getElementById('chartViewMonthly').style.height = `250px`;
-    } else {
-        // Mode Mobile (Horizontal): Hitung Tinggi Dinamis
-        const barHeight = 35; 
-        const axisPadding = 80;
-        const requiredHeight = (labels.length * barHeight) + axisPadding;
-        canvas.style.height = `${Math.max(250, requiredHeight)}px`;
-        document.getElementById('chartViewMonthly').style.height = `${Math.max(250, requiredHeight)}px`;
-    }
-
-    monthlyChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Energi Bulanan (kWh)',
-                data: values,
-                backgroundColor: '#2ecc71',
-                borderColor: '#27ae60',
-                borderWidth: 2,
-                borderRadius: 5,
-                hoverBackgroundColor: '#27ae60'
-            }]
-        },
-        options: {
-            responsive: true,
-            // 💡 PERBAIKAN: Selalu gunakan false agar lebar 100% di desktop
-            maintainAspectRatio: false, 
-            indexAxis: axis, 
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                // ... (Konfigurasi scales tetap sama)
-                [isDesktopView ? 'x' : 'y']: {
-                    // Sumbu Kategori (Bulan)
-                },
-                [isDesktopView ? 'y' : 'x']: {
-                    // Sumbu Nilai (Energi)
-                    beginAtZero: true,
-                    title: { 
-                        display: true, 
-                        text: 'kWh',
-                        color: '#27ae60'
-                    }
-                }
-            }
-        }
-    });
-}
 
 function showEnergyView(type, view) {
     if (type === 'daily') {
@@ -2171,17 +1904,6 @@ function showEnergyView(type, view) {
             document.getElementById('chartViewDaily').style.display = 'block';
             if (dailyChart) {
                 dailyChart.resize();
-            }
-        }
-    } else if (type === 'monthly') {
-        if (view === 'table') {
-            document.getElementById('tableViewMonthly').style.display = 'block';
-            document.getElementById('chartViewMonthly').style.display = 'none';
-        } else {
-            document.getElementById('tableViewMonthly').style.display = 'none';
-            document.getElementById('chartViewMonthly').style.display = 'block';
-            if (monthlyChart) {
-                monthlyChart.resize();
             }
         }
     }

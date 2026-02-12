@@ -980,7 +980,6 @@
             <!-- Tab Navigation -->
             <div class="tab-container-main">
                 <button class="tab-button active" data-tab="main">Main</button>
-                <button class="tab-button" data-tab="energy">Riwayat Energi</button>
             </div>
 
             <!-- Tab Content: Main -->
@@ -1146,36 +1145,6 @@
             </div>
             </div>
             
-            <!-- Tab Content: Riwayat Energi -->
-            <div id="tab-energy" class="tab-content-main" style="display: none;">
-                <div class="dashboard-container">
-                    <!-- Bagian Riwayat Energi Harian -->
-                    <div class="data-section">
-                        <h2>📅 Riwayat Energi Harian</h2>
-                        <div class="status" id="dataStatusDaily"></div>
-                        
-                        <div class="view-toggle">
-                            <button class="daily" onclick="showEnergyView('daily', 'table')">📋 Lihat Daftar</button>
-                            <button class="daily" onclick="showEnergyView('daily', 'chart')">📈 Lihat Grafik</button>
-                        </div>
-
-                        <div class="table-chart-container">
-                            <div id="tableViewDaily" class="table-container">
-                                <table class="daily-table">
-                                    <thead><tr><th>Tanggal</th><th>Energi</th></tr></thead>
-                                    <tbody id="tableBodyDaily"></tbody>
-                                </table>
-                            </div>
-
-                            <div id="chartViewDaily" class="chart-container-mobile" style="display:none;">
-                                <canvas id="energyChartDaily"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
             
             <section class="section-info-extended" style="display: flex; justify-content: space-around; 
               margin-top: 15px; background-color: white; border: 2px solid #007BFF; 

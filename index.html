@@ -980,7 +980,6 @@
             <!-- Tab Navigation -->
             <div class="tab-container-main">
                 <button class="tab-button active" data-tab="main">Main</button>
-                <button class="tab-button" data-tab="energy">Riwayat Energi</button>
             </div>
 
             <!-- Tab Content: Main -->
@@ -1145,129 +1144,7 @@
               </section>
             </div>
             </div>
-            
-            <!-- Tab Content: Riwayat Energi -->
-            <div id="tab-energy" class="tab-content-main" style="display: none;">
-                <div class="dashboard-container">
-                    <!-- Bagian Riwayat Energi Harian -->
-                    <div class="data-section">
-                        <h2>📅 Riwayat Energi Harian</h2>
-                        <div class="control">
-                            <select id="yearSelectDaily">
-                                <option value="2025" selected>2025</option>
-                                <option value="2026">2026</option>
-                                <option value="2027">2027</option>
-                                <option value="2028">2028</option>
-                                <option value="2029">2029</option>
-                                <option value="2030">2030</option>
-                                <option value="2031">2031</option>
-                                <option value="2032">2032</option>
-                                <option value="2033">2033</option>
-                                <option value="2034">2034</option>
-                                <option value="2035">2035</option>
-                                <option value="2036">2036</option>
-                                <option value="2037">2037</option>
-                                <option value="2038">2038</option>
-                                <option value="2039">2039</option>
-                                <option value="2040">2040</option>
-                                <option value="2041">2041</option>
-                                <option value="2042">2042</option>
-                                <option value="2043">2043</option>
-                                <option value="2044">2044</option>
-                                <option value="2045">2045</option>
-                                <option value="2046">2046</option>
-                            </select>
-                            <select id="monthSelectDaily">
-                                <option value="">-- Pilih Bulan --</option>
-                                <option value="01">Januari (01)</option>
-                                <option value="02">Februari (02)</option>
-                                <option value="03">Maret (03)</option>
-                                <option value="04">April (04)</option>
-                                <option value="05">Mei (05)</option>
-                                <option value="06">Juni (06)</option>
-                                <option value="07">Juli (07)</option>
-                                <option value="08">Agustus (08)</option>
-                                <option value="09">September (09)</option>
-                                <option value="10">Oktober (10)</option>
-                                <option value="11">November (11)</option>
-                                <option value="12">Desember (12)</option>
-                            </select>
-                            <button type="button" class="daily-button" onclick="requestData('daily')">📊 Cek Data Harian</button>
-                        </div>
-                        <div class="status" id="dataStatusDaily"></div>
-                        
-                        <div class="view-toggle">
-                            <button class="daily" onclick="showEnergyView('daily', 'table')">📋 Lihat Daftar</button>
-                            <button class="daily" onclick="showEnergyView('daily', 'chart')">📈 Lihat Grafik</button>
-                        </div>
-
-                        <div class="table-chart-container">
-                            <div id="tableViewDaily" class="table-container">
-                                <table class="daily-table">
-                                    <thead><tr><th>Tanggal</th><th>Energi</th></tr></thead>
-                                    <tbody id="tableBodyDaily"></tbody>
-                                </table>
-                            </div>
-
-                            <div id="chartViewDaily" class="chart-container-mobile" style="display:none;">
-                                <canvas id="energyChartDaily"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bagian Riwayat Energi Bulanan -->
-                    <div class="data-section monthly-section">
-                        <h2>📊 Riwayat Energi Bulanan</h2>
-                        <div class="control">
-                            <select id="yearSelectMonthly">
-                                <option value="2025" selected>2025</option>
-                                <option value="2026">2026</option>
-                                <option value="2027">2027</option>
-                                <option value="2028">2028</option>
-                                <option value="2029">2029</option>
-                                <option value="2030">2030</option>
-                                <option value="2031">2031</option>
-                                <option value="2032">2032</option>
-                                <option value="2033">2033</option>
-                                <option value="2034">2034</option>
-                                <option value="2035">2035</option>
-                                <option value="2036">2036</option>
-                                <option value="2037">2037</option>
-                                <option value="2038">2038</option>
-                                <option value="2039">2039</option>
-                                <option value="2040">2040</option>
-                                <option value="2041">2041</option>
-                                <option value="2042">2042</option>
-                                <option value="2043">2043</option>
-                                <option value="2044">2044</option>
-                                <option value="2045">2045</option>
-                                <option value="2046">2046</option>
-                            </select>
-                            <button type="button" class="monthly-button" onclick="requestData('monthly')">📅 Cek Data Bulanan</button>
-                        </div>
-                        <div class="status" id="dataStatusMonthly"></div>
-                        
-                        <div class="view-toggle">
-                            <button class="monthly" onclick="showEnergyView('monthly', 'table')">📋 Lihat Daftar</button>
-                            <button class="monthly" onclick="showEnergyView('monthly', 'chart')">📈 Lihat Grafik</button>
-                        </div>
-
-                        <div class="table-chart-container">
-                            <div id="tableViewMonthly" class="table-container">
-                                <table class="monthly-table">
-                                    <thead><tr><th>Bulan</th><th>Energi</th></tr></thead>
-                                    <tbody id="tableBodyMonthly"></tbody>
-                                </table>
-                            </div>
-
-                            <div id="chartViewMonthly" class="chart-container-mobile" style="display:none;">
-                                <canvas id="energyChartMonthly"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+    
             
             <section class="section-info-extended" style="display: flex; justify-content: space-around; 
               margin-top: 15px; background-color: white; border: 2px solid #007BFF; 
